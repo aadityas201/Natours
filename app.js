@@ -9,13 +9,19 @@ const app = express();
 //Middleware for req.body
 app.use(express.json());
 
+//Middle ware for serving static files
+app.use(express.static(`${__dirname}/public`));
+
 //Our own Middleware
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
   next();
 });
 //third party middleware
-app.use(morgan('dev'));
+if(process.env.NODE_ENV === 'development'){
+  app.use(morgan('dev'));
+}
+
 
 // app.get('/', (req,res) => {
 //     res.status(200).send('Hello from the Server Side')
@@ -40,3 +46,4 @@ app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
 
 //**************Server************** */
+module.exports = app;
