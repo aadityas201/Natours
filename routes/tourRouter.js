@@ -5,7 +5,10 @@ const { router } = require('../app');
 const Router = express.Router();
 // Router.param('id', tourController.checkID)
 
+Router.route('/top-5-cheap')
+  .get(tourController.aliasTopTours, tourController.geAllTours)
 
+Router.route('/tour-stats').get(tourController.getTourStats);
 
 Router.route('/')
   .get(tourController.geAllTours)
