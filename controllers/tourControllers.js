@@ -1,6 +1,8 @@
 const { fail } = require('assert');
 const fs = require('fs');
 const Tour = require('./../models/tourModel') 
+const catchAsync = require('./../utils/catchAsync');
+const AppError = require('./../utils/appError');
 const APIFeatures = require('./../utils/apiFeatures');
 
 // const tours = JSON.parse(
@@ -37,99 +39,81 @@ exports.aliasTopTours = (req, res, next) => {
   next();
 };
 
-exports.geAllTours = async (req, res) => {
-  try {
-    const features = new APIFeatures(Tour.find(), req.query)
+exports.getAllTours = catchAsync(async (req, res, next) => {
+  const features = new APIFeatures(Tour.find(), req.query)
     .filter()
     .sort()
     .limitFields()
     .paginate();
-    const tours = await features.query;
-    res.status(200).json({
-      status: 'Success',
-      results: tours.length,
-      data: {
-        tours
-      }
-    });
-  } catch (error) {
-    res.status(404).json({
-      status: fail,
-      message: error
-    })
+  const tours = await features.query;
+
+  // SEND RESPONSE
+  res.status(200).json({
+    status: 'success',
+    results: tours.length,
+    data: {
+      tours
+    }
+  });
+});
+exports.getTour = catchAsync(async (req, res, next) => {
+  const tour = await Tour.findById(req.params.id);
+  // Tour.findOne({ _id: req.params.id })
+
+  if (!tour) {
+    return next(new AppError('No tour found with that ID', 404));
   }
-};
-exports.getTour = async (req, res) => {
-  try {
-    const tour = await Tour.findById(req.params.id);
-    res.status(200).json({
-      status: 'Success',
-      data: {
-        tour
-      }
-    })
-    
-  } catch (error) {
-    res.status(404).json({
-      status: 'Fail',
-      message: error
-    })
-  }
-};
-exports.createTour = async(req, res) => {
- try {
-    const newTour = await Tour.create(req.body);
-    res.status(201).json({
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      tour
+    }
+  });
+});
+exports.createTour = catchAsync(async (req, res, next) => {
+  const newTour = await Tour.create(req.body);
+
+  res.status(201).json({
     status: 'success',
     data: {
       tour: newTour
     }
   });
- } catch (error) {
-   res.status(404).json({
-      status: 'Fail',
-      message: error
-    })
- }
-};
+});
 
-exports.updateTour = async (req, res) => {
-  try {
-    const tour = await Tour.findByIdAndUpdate(req.params.id,req.body,{
-      //new is a bool when set to true returns the updated document p
-      new: true,
-      runValidators: true
-    })
-    res.status(200).json({
-      status: 'Success',
-      data: {
-        tour
-      },
-    });
-    
-  } catch (error) {
-     res.status(404).json({
-      status: 'Fail',
-      message: error
-    })
-  }
-};
-exports.deleteTour = async (req, res) => {
-  try {
-    await Tour.findByIdAndDelete(req.params.id)
-    res.status(204).json({
-      status: 'Success',
-      message: 'Record Deleted Successfully'
-    })
-  } catch (error) {
-    res.status(404).json({
-      status: 'Fail',
-      message: error
-    })
-  }
-};
+exports.updateTour = catchAsync(async (req, res, next) => {
+  const tour = await Tour.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+    runValidators: true
+  });
 
-exports.getTourStats = (async (req, res, next) => {
+  if (!tour) {
+    return next(new AppError('No tour found with that ID', 404));
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      tour
+    }
+  });
+});
+
+exports.deleteTour = catchAsync(async (req, res, next) => {
+  const tour = await Tour.findByIdAndDelete(req.params.id);
+
+  if (!tour) {
+    return next(new AppError('No tour found with that ID', 404));
+  }
+
+  res.status(204).json({
+    status: 'success',
+    data: null
+  });
+});
+
+exports.getTourStats = catchAsync(async (req, res, next) => {
   const stats = await Tour.aggregate([
     {
       $match: { ratingsAverage: { $gte: 4.5 } }
@@ -161,7 +145,7 @@ exports.getTourStats = (async (req, res, next) => {
   });
 });
 
-exports.getMonthlyPlan = (async (req, res, next) => {
+exports.getMonthlyPlan = catchAsync(async (req, res, next) => {
   const year = req.params.year * 1; // 2021
 
   const plan = await Tour.aggregate([
